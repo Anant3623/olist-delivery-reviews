@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.DS_Store
+.env
+data/raw/*.csv
+exports/*.csv
+
+# Built locally from data (re-run the build scripts)
+powerbi/olist_powerbi_model.xlsx
