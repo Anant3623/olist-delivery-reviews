@@ -1,0 +1,3 @@
+delivery_status,orders,late_orders,on_time_orders,reviewed_orders,missing_review_orders,review_score_sum,review_coverage_pct,late_rate_pct,on_time_rate_pct,average_review_score,late_delay_days_sum,average_late_delay_days,delay_days_sum,average_delay_days
+On-time,89936,0,89936,89443,493,383745,99.45183241,0.0,100.0,4.29038606,0,,-1215059,-13.51026285
+Late,6534,6534,0,6381,153,14488,97.6584022,100.0,0.0,2.27049052,69392,10.6201408,69392,10.6201408

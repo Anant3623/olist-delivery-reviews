@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Olist delivery reliability: full analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EBEFED; --panel:#FFFFFF; --ink:#13212B; --muted:#56666E; --line:#D3DBD8; --soft:#F3F6F5;
+  --ontime:#1B7A64; --late:#D2442E; --tape:#E8AE00; --bar:#9AAAB0; --faded:#DCE3E0;
+  --band:#13212B; --bandInk:#F2F5F4; --bandMuted:#A9B8BE;
+  --font:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1519; --panel:#142028; --ink:#E4EBE8; --muted:#97A7AD; --line:#283841; --soft:#1A2830;
+    --ontime:#3DBA97; --late:#F26A52; --tape:#F3C340; --bar:#4F626B; --faded:#22313A;
+    --band:#08100F; --bandInk:#E4EBE8; --bandMuted:#8FA0A6;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1519; --panel:#142028; --ink:#E4EBE8; --muted:#97A7AD; --line:#283841; --soft:#1A2830;
+  --ontime:#3DBA97; --late:#F26A52; --tape:#F3C340; --bar:#4F626B; --faded:#22313A;
+  --band:#08100F; --bandInk:#E4EBE8; --bandMuted:#8FA0A6;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 140px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.in{max-width:1280px;margin:0 auto;padding:0 20px}
+.band{background:var(--band);color:var(--bandInk);border-bottom:6px solid var(--tape)}
+.band .in{padding-top:30px;padding-bottom:26px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:end}
+h1{font-family:var(--cond);font-weight:700;font-size:clamp(38px,6vw,68px);line-height:.95;margin:0;letter-spacing:-.01em}
+.band p{color:var(--bandMuted);margin:12px 0 0;max-width:62ch}
+.ticker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-left:1px solid #ffffff22}
+.ticker div{padding:2px 14px;border-right:1px solid #ffffff22}
+.ticker b{display:block;font-family:var(--cond);font-weight:600;font-size:clamp(28px,3.4vw,40px);line-height:1}
+.ticker span{font-size:12.5px;color:var(--bandMuted)}
+.ticker .r{color:#FF7A63}
+.bar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.bar .in{padding-top:12px;padding-bottom:0}
+.filters{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end}
+.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+select,button,input{font-family:var(--font);font-size:14px;color:var(--ink)}
+select{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 26px 6px 9px;min-width:110px;max-width:190px;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 14px) 52%,calc(100% - 9px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+button{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+:focus-visible{outline:2px solid var(--tape);outline-offset:2px}
+.status{font-size:13px;color:var(--muted);margin:8px 0 0}
+.status b{color:var(--ink);font-weight:600}
+nav{display:flex;gap:2px;overflow-x:auto;margin-top:8px;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{border:0;border-radius:0;background:transparent;padding:10px 14px 9px;font-family:var(--cond);font-size:18px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--tape)}
+main .in{padding-top:22px;padding-bottom:40px}
+.page[hidden]{display:none}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid var(--line);background:var(--panel);border-radius:4px}
+.kpi{padding:13px 15px;border-left:1px dashed var(--line);min-width:0}
+.kpi:first-child{border-left:0}
+.kpi .l{font-size:12.5px;color:var(--muted)}
+.kpi .v{font-family:var(--cond);font-weight:600;font-size:34px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--muted)}
+.late{color:var(--late)} .ok{color:var(--ontime)}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;margin-top:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px 16px 12px;min-width:0}
+.panel.hero{border-top:6px solid var(--tape)}
+.panel h2{font-family:var(--cond);font-weight:700;font-size:clamp(25px,3vw,34px);line-height:1.05;margin:0}
+.panel h3{font-family:var(--cond);font-weight:600;font-size:21px;margin:0;line-height:1.15}
+.sub{font-size:13px;color:var(--muted);margin:3px 0 10px;max-width:90ch}
+.take{font-size:14px;margin:10px 0 2px;padding-left:10px;border-left:3px solid var(--tape);max-width:90ch}
+.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c8{grid-column:span 8}.c12{grid-column:span 12}
+.chart{position:relative;width:100%}
+.h180{height:180px}.h240{height:240px}.h280{height:280px}.h320{height:320px}.h360{height:360px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;border-radius:0;padding:5px 10px;font-size:13px;background:transparent}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.legend{display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.big div{background:var(--soft);border-radius:4px;padding:12px 14px}
+.big b{display:block;font-family:var(--cond);font-weight:600;font-size:38px;line-height:1.05;font-variant-numeric:tabular-nums}
+.big span{font-size:13px;color:var(--muted)}
+.map{display:grid;grid-template-columns:repeat(6,minmax(0,52px));grid-auto-rows:46px;gap:4px;justify-content:center;margin:6px 0}
+.tile{border:0;border-radius:4px;padding:3px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;font-family:var(--cond);cursor:pointer;color:var(--ink)}
+.tile b{font-size:15px;font-weight:700}.tile span{font-size:12px;font-family:var(--font);font-variant-numeric:tabular-nums}
+.tile.small{opacity:.55}
+.tile.sel{outline:3px solid var(--tape);outline-offset:1px}
+.scale{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);justify-content:center}
+.scale i{display:block;width:120px;height:8px;border-radius:2px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th{font-weight:500;color:var(--muted);text-align:right;padding:8px 10px;border-bottom:2px solid var(--ink);white-space:nowrap;font-size:13px}
+td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th.lft,td.lft{text-align:left}
+td.id{color:var(--muted)}
+.cell{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.track{width:80px;height:8px;background:var(--soft);border-radius:2px;overflow:hidden}
+.track span{display:block;height:100%;background:var(--late)}
+.mx td{text-align:center;padding:9px 6px;border:2px solid var(--panel);font-variant-numeric:tabular-nums}
+.mx td small{display:block;font-size:11px;opacity:.8}
+.mx th{text-align:center;border-bottom:2px solid var(--ink)}
+.mx th.lft{text-align:left}
+.mx tbody th{border-bottom:1px solid var(--line);font-weight:600;color:var(--ink)}
+.ctrl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.ctrl input[type=range]{accent-color:var(--ink);width:150px}
+.sim{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
+.sim div{background:var(--soft);border-radius:4px;padding:12px 14px}
+.sim b{display:block;font-family:var(--cond);font-weight:600;font-size:32px;line-height:1.1}
+.sim span{font-size:12.5px;color:var(--muted)}
+.slider{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:8px}
+.slider input{flex:1;min-width:200px;accent-color:var(--late)}
+.slider output{font-family:var(--cond);font-size:28px;font-weight:600;min-width:80px}
+.findings{display:grid;gap:0;margin-top:4px}
+.fd{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px;padding:16px 0;border-top:1px solid var(--line)}
+.fd .n{font-family:var(--cond);font-weight:700;font-size:40px;line-height:1;color:var(--tape)}
+.fd h3{margin:0 0 4px}
+.fd p{margin:0;max-width:92ch}
+.recs{margin:6px 0 0;padding-left:20px;max-width:92ch}
+.recs li{margin:6px 0}
+.empty{padding:20px 0;color:var(--muted)}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;margin-top:24px}
+footer p{margin:4px 0;max-width:110ch}
+@media (max-width:1060px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.kpi:nth-child(4){border-left:0}.kpi:nth-child(n+4){border-top:1px dashed var(--line)}}
+@media (max-width:960px){.c3,.c4,.c5,.c6,.c7,.c8{grid-column:span 12}.band .in{grid-template-columns:1fr}.sim{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.bar{position:static}.in{padding:0 14px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi{border-left:0!important;border-top:1px dashed var(--line)}.kpi:nth-child(-n+2){border-top:0}.kpi:nth-child(even){border-left:1px dashed var(--line)!important}
+  .kpi .v{font-size:28px}select{min-width:0;max-width:150px}.ticker b{font-size:26px}.fd{grid-template-columns:40px minmax(0,1fr)}.fd .n{font-size:30px}}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="in">
+    <div>
+      <h1>Late deliveries, lost stars</h1>
+      <p>A full read of 96,470 delivered Olist orders (Brazil, 2016–2018): what happens to reviews when an order misses its promised date, where in the delivery chain time is lost, and where operations should act first.</p>
+    </div>
+    <div class="ticker" aria-label="Headline figures">
+      <div><b>6.77%</b><span>orders delivered late</span></div>
+      <div><b class="r">−2.02★</b><span>review drop when late</span></div>
+      <div><b>3.5×</b><span>longer carrier transit on late orders</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="in">
+    <div class="filters" role="group" aria-label="Filters">
+      <label class="f">From<select id="fFrom"></select></label>
+      <label class="f">To<select id="fTo"></select></label>
+      <label class="f">Customer region<select id="fRegion"></select></label>
+      <label class="f">Customer state<select id="fState"></select></label>
+      <label class="f">Seller state<select id="fSeller"></select></label>
+      <label class="f">Category<select id="fCat"></select></label>
+      <button id="reset" type="button">Clear filters</button>
+    </div>
+    <p class="status" id="status" aria-live="polite"></p>
+    <nav role="tablist" aria-label="Dashboard pages">
+      <button role="tab" data-p="overview" aria-selected="true">Overview</button>
+      <button role="tab" data-p="anatomy" aria-selected="false">Delivery anatomy</button>
+      <button role="tab" data-p="geo" aria-selected="false">Geography and routes</button>
+      <button role="tab" data-p="prod" aria-selected="false">Products and sellers</button>
+      <button role="tab" data-p="impact" aria-selected="false">Customer impact</button>
+      <button role="tab" data-p="find" aria-selected="false">Findings and actions</button>
+    </nav>
+  </div>
+</div>
+
+<main><div class="in">
+<section class="kpis" aria-label="Key figures for the current filters">
+  <div class="kpi"><div class="l">Delivered orders</div><div class="v" id="kOrders">–</div><div class="s" id="kOrdersS"></div></div>
+  <div class="kpi"><div class="l">Late rate</div><div class="v late" id="kLate">–</div><div class="s" id="kLateS"></div></div>
+  <div class="kpi"><div class="l">Average review</div><div class="v" id="kRev">–</div><div class="s" id="kRevS"></div></div>
+  <div class="kpi"><div class="l">Review gap, on time vs late</div><div class="v late" id="kGap">–</div><div class="s" id="kGapS"></div></div>
+  <div class="kpi"><div class="l">Average delivery time</div><div class="v" id="kDays">–</div><div class="s" id="kDaysS"></div></div>
+  <div class="kpi"><div class="l">Average delay when late</div><div class="v" id="kDelay">–</div><div class="s">past the promised date</div></div>
+</section>
+
+<section class="page" id="p-overview">
+  <div class="grid">
+    <div class="panel hero c12">
+      <h2>Ratings fall off a cliff once the promised date passes</h2>
+      <p class="sub" id="heroSub"></p>
+      <div class="chart h360"><canvas id="cDay" role="img" aria-label="Average review by days early or late"></canvas></div>
+      <p class="take" id="heroTake"></p>
+    </div>
+    <div class="panel c8">
+      <div class="row"><div><h3>Orders and late rate by purchase month</h3><p class="sub">Click a month to focus on it. Late rate is hidden for months under 100 orders.</p></div>
+      <div class="legend"><span><i style="background:var(--bar)"></i>Orders</span><span><i style="background:var(--late)"></i>Late rate</span></div></div>
+      <div class="chart h280"><canvas id="cMonth" role="img" aria-label="Monthly orders and late rate"></canvas></div>
+      <p class="take" id="monthTake"></p>
+    </div>
+    <div class="panel c4">
+      <h3>Review by how late</h3><p class="sub">Average score per delay bucket</p>
+      <div class="chart h280"><canvas id="cBucket" role="img" aria-label="Average review by delay bucket"></canvas></div>
+    </div>
+    <div class="panel c12">
+      <h3>How customers score, on time vs late</h3><p class="sub">Share of reviewed orders by star rating</p>
+      <div class="chart h180"><canvas id="cDist" role="img" aria-label="Star rating distribution"></canvas></div>
+      <div class="legend" id="distLegend" style="margin-top:8px"></div>
+      <p class="take" id="distTake"></p>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="p-anatomy" hidden>
+  <div class="grid">
+    <div class="panel hero c7">
+      <h2>Late orders lose their time in transit, not at checkout</h2>
+      <p class="sub">Average days spent in each stage. Orders with a missing or out-of-order stage timestamp are left out.</p>
+      <div class="chart h240"><canvas id="cStage" role="img" aria-label="Average days per delivery stage"></canvas></div>
+      <div class="legend" id="stageLegend"></div>
+      <p class="take" id="stageTake"></p>
+    </div>
+    <div class="panel c5">
+      <h3>Did the seller hand over on time?</h3>
+      <p class="sub">Seller handoff is late when the carrier pickup happens after the shipping limit date.</p>
+      <div class="big"><div><b class="late" id="hLate">–</b><span id="hLateS">late rate when the seller missed the handoff</span></div><div><b class="ok" id="hOk">–</b><span id="hOkS">late rate when the handoff was on time</span></div></div>
+      <p class="take" id="handTake"></p>
+    </div>
+    <div class="panel c7">
+      <div class="row"><div><h3>Promise vs reality by purchase month</h3><p class="sub">Average promised delivery time against the actual time taken. The gap is the buffer.</p></div>
+      <div class="legend"><span><i style="background:var(--tape)"></i>Promised days</span><span><i style="background:var(--ontime)"></i>Actual days</span></div></div>
+      <div class="chart h280"><canvas id="cPromise" role="img" aria-label="Promised vs actual delivery days by month"></canvas></div>
+      <p class="take" id="promTake"></p>
+    </div>
+    <div class="panel c5">
+      <h3>How much buffer do orders arrive with?</h3>
+      <p class="sub">Orders by days delivered before (left) or after (right) the promised date</p>
+      <div class="chart h280"><canvas id="cHist" role="img" aria-label="Histogram of delay days"></canvas></div>
+      <p class="take" id="histTake"></p>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="p-geo" hidden>
+  <div class="grid">
+    <div class="panel hero c5">
+      <div class="row"><h3>Brazil by customer state</h3></div>
+      <div class="seg" role="group" aria-label="Map metric" style="margin:8px 0 4px">
+        <button type="button" data-g="late" aria-pressed="true">Late rate</button><button type="button" data-g="rev" aria-pressed="false">Avg review</button><button type="button" data-g="days" aria-pressed="false">Delivery days</button><button type="button" data-g="buf" aria-pressed="false">Buffer days</button>
+      </div>
+      <p class="sub">Click a state to filter every page. Faded tiles have under 100 orders.</p>
+      <div class="map" id="map" role="group" aria-label="Tile map of Brazilian states"></div>
+      <div class="scale" id="scale"></div>
+      <p class="take" id="mapTake"></p>
+    </div>
+    <div class="panel c7">
+      <h3>Distance drives delay</h3><p class="sub">Seller-to-customer distance (zip-prefix centroids). Bars show average delivery days, the line shows late rate.</p>
+      <div class="legend"><span><i style="background:var(--bar)"></i>Delivery days</span><span><i style="background:var(--late)"></i>Late rate</span></div>
+      <div class="chart h280"><canvas id="cDistance" role="img" aria-label="Delivery days and late rate by distance"></canvas></div>
+      <div class="big" style="margin-top:12px"><div><b id="sameV">–</b><span id="sameS">late rate, same-state orders</span></div><div><b class="late" id="interV">–</b><span id="interS">late rate, interstate orders</span></div></div>
+      <p class="take" id="distTakeGeo"></p>
+    </div>
+    <div class="panel c12">
+      <h3>Route matrix: where sellers ship from and where it arrives</h3>
+      <p class="sub">Late rate by seller state (rows) and customer region (columns). Darker is worse. Cells under 50 orders are blank.</p>
+      <div class="tablewrap"><table class="mx" id="matrix"></table></div>
+      <p class="take" id="mxTake"></p>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="p-prod" hidden>
+  <div class="grid">
+    <div class="panel c7">
+      <div class="row"><div><h3>Categories</h3><p class="sub">The 14 largest categories in the current selection. Click a bar to filter by category.</p></div>
+      <div class="seg" role="group" aria-label="Category metric"><button type="button" data-k="late" aria-pressed="true">Late rate</button><button type="button" data-k="rev" aria-pressed="false">Avg review</button></div></div>
+      <div class="chart h360"><canvas id="cCat" role="img" aria-label="Category comparison"></canvas></div>
+      <p class="take" id="catTake"></p>
+    </div>
+    <div class="panel c5">
+      <h3>Basket size</h3><p class="sub">Multi-item orders are late less often but score lower</p>
+      <div class="legend"><span><i style="background:var(--bar)"></i>Avg review</span><span><i style="background:var(--late)"></i>Late rate</span></div>
+      <div class="chart h240"><canvas id="cItems" role="img" aria-label="Review and late rate by items per order"></canvas></div>
+      <h3 style="margin-top:14px">Order value</h3><p class="sub">Pricier orders are slightly more often late</p>
+      <div class="chart h180"><canvas id="cPrice" role="img" aria-label="Late rate by order value"></canvas></div>
+    </div>
+    <div class="panel c12">
+      <div class="row"><div><h3>Seller map</h3><p class="sub" id="scatSub"></p></div>
+      <div class="ctrl"><label>Min orders <input type="range" id="minOrders" min="10" max="300" step="10" value="30"> <b id="minOut">30</b></label></div></div>
+      <div class="chart h320"><canvas id="cScatter" role="img" aria-label="Sellers by orders and late rate"></canvas></div>
+      <div class="legend" id="scatLegend"></div>
+    </div>
+    <div class="panel c12">
+      <div class="row"><div><h3>Seller watchlist</h3><p class="sub" id="sellerSub"></p></div>
+      <div class="seg" role="group" aria-label="Rank sellers by"><button type="button" data-s="vol" aria-pressed="true">Most late orders</button><button type="button" data-s="rate" aria-pressed="false">Highest late rate</button><button type="button" data-s="hand" aria-pressed="false">Most missed handoffs</button></div></div>
+      <div class="tablewrap"><table><thead><tr><th class="lft">Seller</th><th class="lft">State</th><th>Orders</th><th>Late</th><th>Late rate</th><th>Missed handoff</th><th>Avg review</th></tr></thead><tbody id="sellerBody"></tbody></table></div>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="p-impact" hidden>
+  <div class="grid">
+    <div class="panel c6">
+      <h3>Late customers write about it</h3><p class="sub">Share of reviewed orders that include a written comment</p>
+      <div class="big"><div><b class="late" id="cmLate">–</b><span>of late orders leave a comment</span></div><div><b id="cmOn">–</b><span>of on-time orders leave a comment</span></div></div>
+      <p class="take" id="cmTake"></p>
+    </div>
+    <div class="panel c6">
+      <h3>Do they come back?</h3><p class="sub">Customers whose first delivered order was on time vs late, and the share who placed another delivered order</p>
+      <div class="big"><div><b class="ok" id="rpOn">–</b><span id="rpOnS">came back after an on-time first order</span></div><div><b class="late" id="rpLate">–</b><span id="rpLateS">came back after a late first order</span></div></div>
+      <p class="take" id="rpTake"></p>
+    </div>
+    <div class="panel hero c12">
+      <h2>What if fewer orders were late?</h2>
+      <p class="sub">Move the slider to set a target late rate for the current selection. Assumes orders moved to on time earn the on-time average and review participation stays the same. A scenario, not a forecast.</p>
+      <div class="slider"><label for="target" class="sub" style="margin:0">Target late rate</label><input type="range" id="target" min="0" max="10" step="0.1" value="4"><output id="targetOut">4.0%</output></div>
+      <div class="sim">
+        <div><b id="sFewer">–</b><span>fewer late orders</span></div>
+        <div><b class="ok" id="sLift">–</b><span>average review lift</span></div>
+        <div><b id="sNew">–</b><span>new average review</span></div>
+        <div><b class="ok" id="sOne">–</b><span>fewer 1★ reviews</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="p-find" hidden>
+  <div class="grid">
+    <div class="panel c12">
+      <h2>What the data says</h2>
+      <p class="sub">Full dataset, no filters. Every number here can be reproduced from the other pages with filters cleared.</p>
+      <div class="findings">
+        <div class="fd"><div class="n">1</div><div><h3>Late delivery is the single biggest swing in ratings</h3><p>Late orders average 2.27★ against 4.29★ on time, a 2.02-point gap. It is not a state or seller mix effect: the gap is 2.005 points within customer states (21 states) and 1.971 within sellers (287 sellers). More than half of late orders (53.8%) get a 1★ review, against 6.6% on time.</p></div></div>
+        <div class="fd"><div class="n">2</div><div><h3>The damage starts on day one and is mostly done by day seven</h3><p>Average review is 4.03 on the promised date, 3.73 at one day late and 1.91 at seven days late, then flattens. Even arriving on the last allowed day costs points: orders arriving 15+ days early average 4.32.</p></div></div>
+        <div class="fd"><div class="n">3</div><div><h3>Carrier transit is where late orders lose time</h3><p>Late orders spend 27.8 days in transit on average against 8.0 for on-time orders, while approval barely differs (0.5 vs 0.4 days). Seller handling also doubles (5.6 vs 2.7 days), so it contributes, but transit is the larger share.</p></div></div>
+        <div class="fd"><div class="n">4</div><div><h3>Missed seller handoffs nearly quadruple the late rate</h3><p>9.0% of orders were picked up after the seller's shipping limit. Those orders were late 20.8% of the time against 5.4% otherwise. Still, only 27.8% of late orders had a missed handoff, so most lateness happens after the parcel leaves the seller.</p></div></div>
+        <div class="fd"><div class="n">5</div><div><h3>Distance and the Northeast</h3><p>Late rate climbs from 4.5% under 100 km to 11.6% beyond 1,500 km; same-state orders are late 4.5% of the time against 8.0% interstate. About 71% of orders ship from São Paulo sellers, so Northeast customers sit at the end of the longest routes: 12.7% late with 20 days average delivery, against 4.5% and 8.8 days for São Paulo customers. Alagoas (21.4%) and Maranhão (17.4%) are the worst states with 100+ orders; Rio de Janeiro is the biggest by volume of late orders.</p></div></div>
+        <div class="fd"><div class="n">6</div><div><h3>Promises do not absorb route variability</h3><p>Northeast promises are already longer (31 days vs 20 for São Paulo), yet still missed more often. Rio de Janeiro has a similar average buffer to São Paulo (11.7 vs 11.0 days) but nearly three times the late rate, so it is the unpredictability of a route, not the average, that breaks promises. Across states, smaller buffers go with higher late rates (Spearman ρ = −0.70 across all 27 states).</p></div></div>
+        <div class="fd"><div class="n">7</div><div><h3>Peaks break the network</h3><p>November 2017 (Black Friday) hit 12.4% late; February and March 2018 hit 14.1% and 19.0%, with median transit rising from about 7 to 10–11 days. Promises were not lengthened for March (22.7 days on average, below December's 28.3). By August 2018, promises had shrunk to 15.8 days while late rate rose again; recent months are also affected by orders still undelivered at data cutoff, so treat them carefully.</p></div></div>
+        <div class="fd"><div class="n">8</div><div><h3>Late customers speak up, and may not return</h3><p>58.9% of reviewed late orders include a written comment against 39.3% on time, so lateness creates visible public complaints. Among first-time customers, 2.5% came back after a late first order against 3.0% after an on-time one. Repeat buying is rare on Olist overall, so treat this as a signal rather than proof.</p></div></div>
+        <div class="fd"><div class="n">9</div><div><h3>Product mix matters less than route</h3><p>Among categories with 500+ orders, late rate ranges only from 4.2% (luggage) to 8.1% (baby, office furniture), a narrower spread than distance. Multi-item orders are late less often (5.4% for two items vs 6.9% for one) yet score lower (3.69 vs 4.21), which points to a separate problem such as split shipments.</p></div></div>
+      </div>
+    </div>
+    <div class="panel c7">
+      <h3>Recommended actions</h3>
+      <ol class="recs">
+        <li><b>Set promises by route, not by average.</b> Use origin–destination distance and recent transit variance to set the promised date, with extra buffer on long Northeast lanes and peak months.</li>
+        <li><b>Work the carrier lanes first.</b> Transit time is the main gap; audit carrier performance on SP→Northeast and SP→RJ routes, where volume and delay meet.</li>
+        <li><b>Enforce the seller handoff.</b> Alert sellers before the shipping limit and track missed handoffs as a seller KPI; prioritise sellers in the watchlist with many late orders.</li>
+        <li><b>Warn before the promise breaks.</b> Proactive messages when an order is predicted to be late could soften the 1★ cliff; test this with a controlled pilot.</li>
+        <li><b>Plan for peaks.</b> Lengthen promises and add carrier capacity before Black Friday and the February–March period.</li>
+      </ol>
+      <p class="take">Scenario: cutting the late rate from 6.77% to 4.00% means about 2,675 fewer late orders and an illustrative average review lift of about 0.055 points.</p>
+    </div>
+    <div class="panel c5">
+      <h3>Limits of this analysis</h3>
+      <ul class="recs">
+        <li>Observational data: carrier, product, price and promise-setting can affect both delivery and review. Gaps are associations, not causal effects.</li>
+        <li>2,963 orders not marked delivered and 8 delivered orders without dates are excluded, so the worst failures may be missing.</li>
+        <li>Distance uses zip-prefix centroids and the highest-value item's seller; it is approximate.</li>
+        <li>Review score is ordinal; the formal test is a two-sided Mann–Whitney U (p &lt; 1e-300).</li>
+        <li>Historical Brazil data from 2016–2018 may not describe today's operations.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Late means the delivery calendar date is after the promised date. Late rate uses all delivered orders; review averages use reviewed orders only (latest answered review per order). Seller filters and category use the seller and category of each order's highest-value item; the seller watchlist counts each order once per participating seller.</p>
+  <p>Data: Brazilian E-Commerce Public Dataset by Olist (Kaggle), anonymized public data.</p>
+</footer>
+</div></main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+const DATA = __DATA__;
+(function(){
+if(typeof Chart==="undefined"){document.getElementById("status").textContent="Charts could not load. Check your connection and reload the page.";return;}
+const N=DATA.n, M=DATA.months, S=DATA.states, CATS=DATA.cats, SELL=DATA.sellers;
+function dec(b,T){const s=atob(b),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return new T(u.buffer);}
+const X=DATA.cols, mi=dec(X.mi,Uint8Array), cs=dec(X.cs,Uint8Array), ss=dec(X.ss,Uint8Array), dd=dec(X.d,Int16Array), sc=dec(X.sc,Uint8Array),
+  ct=dec(X.cat,Uint8Array), dist=dec(X.dist,Uint16Array), prom=dec(X.prom,Uint8Array), act=dec(X.act,Uint16Array), appr=dec(X.appr,Uint16Array),
+  hand=dec(X.hand,Uint16Array), tran=dec(X.tran,Uint16Array), lh=dec(X.lh,Uint8Array), cm=dec(X.cm,Uint8Array), items=dec(X.items,Uint8Array),
+  price=dec(X.price,Uint16Array), first=dec(X.first,Uint8Array), back=dec(X.back,Uint8Array), bo=dec(X.bo,Uint32Array), bs=dec(X.bs,Uint16Array);
+const NA=65535, SR=S.map(s=>s[2]), REG=["North","Northeast","Central-West","Southeast","South"], ri={};REG.forEach((r,i)=>ri[r]=i);
+const ORIG=["SP","MG","PR","RJ","SC","RS"].map(c=>S.findIndex(s=>s[0]===c));
+const DB=[100,300,600,1000,1500,Infinity], DBL=["<100 km","100–300","300–600","600–1,000","1,000–1,500","1,500+ km"];
+const PB=[50,100,200,500,Infinity], PBL=["Under R$50","R$50–100","R$100–200","R$200–500","R$500+"];
+const MN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const mLabel=m=>MN[+m.slice(5)-1]+" "+m.slice(0,4);
+const fmt=n=>Math.round(n).toLocaleString("en-US");
+const pct=(a,b,d=1)=>b?(100*a/b).toFixed(d)+"%":"–";
+const avg=(s,n,d=2)=>n?(s/n).toFixed(d):"–";
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const st={from:0,to:M.length-1,region:"All",cs:null,ss:null,cat:null,page:"overview",geo:"late",catM:"late",sort:"vol",minOrders:30,target:4};
+const $=id=>document.getElementById(id);
+let A=null;
+
+/* filters */
+const fFrom=$("fFrom"),fTo=$("fTo"),fRegion=$("fRegion"),fState=$("fState"),fSeller=$("fSeller"),fCat=$("fCat");
+M.forEach((m,i)=>{fFrom.add(new Option(mLabel(m),i));fTo.add(new Option(mLabel(m),i));});
+fRegion.add(new Option("All of Brazil","All"));REG.forEach(r=>fRegion.add(new Option(r,r)));
+const byName=S.map((s,i)=>[s,i]).sort((a,b)=>a[0][1].localeCompare(b[0][1]));
+fSeller.add(new Option("Any seller state",""));byName.forEach(([s,i])=>fSeller.add(new Option(s[1]+" ("+s[0]+")",i)));
+const catCount=new Array(CATS.length).fill(0);for(let i=0;i<N;i++)catCount[ct[i]]++;
+fCat.add(new Option("All categories",""));CATS.map((c,i)=>[c,i]).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([c,i])=>fCat.add(new Option(c.charAt(0).toUpperCase()+c.slice(1),i)));
+function sync(){fFrom.value=st.from;fTo.value=st.to;fRegion.value=st.region;
+  fState.innerHTML="";fState.add(new Option("All states",""));byName.filter(([s])=>st.region==="All"||s[2]===st.region).forEach(([s,i])=>fState.add(new Option(s[1]+" ("+s[0]+")",i)));
+  fState.value=st.cs===null?"":st.cs;fSeller.value=st.ss===null?"":st.ss;fCat.value=st.cat===null?"":st.cat;}
+
+/* aggregation */
+function compute(){
+  const a={n:0,l:0,rn:0,rs:0,on:0,os:0,ln:0,ls:0,ld:0,act:0,prom:0,day:[],bk:[],dist:{on:[0,0,0,0,0,0],late:[0,0,0,0,0,0]},hist:new Array(81).fill(0),
+    stg:[[0,0,0,0],[0,0,0,0]],lhN:0,lhL:0,okN:0,okL:0,lateLh:0,db:DB.map(()=>({n:0,l:0,a:0})),same:{n:0,l:0},inter:{n:0,l:0},
+    mx:ORIG.concat(-1).map(()=>REG.map(()=>({n:0,l:0}))),pb:PB.map(()=>({n:0,l:0,rn:0,rs:0})),it:[0,0,0,0].map(()=>({n:0,l:0,rn:0,rs:0})),
+    cm:{on:0,onc:0,late:0,latec:0},rp:{on:0,onb:0,late:0,lateb:0},mon:M.map(()=>({n:0,l:0,p:0,a:0})),sta:S.map(()=>({n:0,l:0,rn:0,rs:0,a:0,p:0,on:0,os:0,ln:0,ls:0})),
+    cat:CATS.map(()=>({n:0,l:0,rn:0,rs:0})),mask:new Uint8Array(N)};
+  for(let k=0;k<43;k++)a.day.push([0,0]);for(let k=0;k<4;k++)a.bk.push([0,0,0]);
+  for(let i=0;i<N;i++){
+    const m=mi[i],c=cs[i],okM=m>=st.from&&m<=st.to,okR=st.region==="All"||SR[c]===st.region,okC=okR&&(st.cs===null||c===st.cs),
+      okS=st.ss===null||ss[i]===st.ss,okK=st.cat===null||ct[i]===st.cat,d=dd[i],late=d>0,s=sc[i],ac=act[i]/10;
+    if(okC&&okS&&okK){const o=a.mon[m];o.n++;if(late)o.l++;o.p+=prom[i];o.a+=ac;}
+    if(okM&&okS&&okK){const o=a.sta[c];o.n++;if(late)o.l++;o.a+=ac;o.p+=prom[i];if(s){o.rn++;o.rs+=s;if(late){o.ln++;o.ls+=s;}else{o.on++;o.os+=s;}}}
+    if(okM&&okC&&okS){const o=a.cat[ct[i]];o.n++;if(late)o.l++;if(s){o.rn++;o.rs+=s;}}
+    if(!(okM&&okC&&okS&&okK))continue;
+    a.mask[i]=1;a.n++;a.act+=ac;a.prom+=prom[i];
+    const b=d<=0?0:d<=3?1:d<=7?2:3;a.bk[b][0]++;
+    if(late){a.l++;a.ld+=d;}
+    if(s){a.rn++;a.rs+=s;a.bk[b][1]++;a.bk[b][2]+=s;if(d>=-21&&d<=21){a.day[d+21][0]++;a.day[d+21][1]+=s;}
+      if(late){a.ln++;a.ls+=s;a.dist.late[s]++;a.cm.late++;a.cm.latec+=cm[i];}else{a.on++;a.os+=s;a.dist.on[s]++;a.cm.on++;a.cm.onc+=cm[i];}}
+    a.hist[Math.max(-40,Math.min(40,d))+40]++;
+    if(appr[i]!==NA&&hand[i]!==NA&&tran[i]!==NA){const g=a.stg[late?1:0];g[0]+=appr[i]/10;g[1]+=hand[i]/10;g[2]+=tran[i]/10;g[3]++;}
+    if(lh[i]){a.lhN++;if(late){a.lhL++;a.lateLh++;}}else{a.okN++;if(late)a.okL++;}
+    if(dist[i]!==NA){let j=0;while(dist[i]>=DB[j])j++;const o=a.db[j];o.n++;if(late)o.l++;o.a+=ac;}
+    if(ss[i]<27){const o=ss[i]===c?a.same:a.inter;o.n++;if(late)o.l++;let r=ORIG.indexOf(ss[i]);if(r<0)r=6;const x=a.mx[r][ri[SR[c]]];x.n++;if(late)x.l++;}
+    {let j=0;while(price[i]>=PB[j])j++;const o=a.pb[j];o.n++;if(late)o.l++;if(s){o.rn++;o.rs+=s;}}
+    {const o=a.it[Math.min(items[i],4)-1];o.n++;if(late)o.l++;if(s){o.rn++;o.rs+=s;}}
+    if(first[i]){if(late){a.rp.late++;a.rp.lateb+=back[i];}else{a.rp.on++;a.rp.onb+=back[i];}}
+  }
+  return a;
+}
+
+/* colors and charts */
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+let C={};
+function readColors(){C={};["ink","muted","line","ontime","late","tape","bar","faded","panel","soft"].forEach(k=>C[k]=css("--"+k));
+  Chart.defaults.color=C.muted;Chart.defaults.borderColor=C.line;Chart.defaults.font.family=css("--font");Chart.defaults.font.size=12;
+  Chart.defaults.animation.duration=reduce?0:350;Chart.defaults.maintainAspectRatio=false;Chart.defaults.plugins.legend.display=false;}
+function mix(a,b,t){t=Math.max(0,Math.min(1,t));const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const x=p(a),y=p(b);return "#"+x.map((v,i)=>Math.round(v+(y[i]-v)*t).toString(16).padStart(2,"0")).join("");}
+const charts={};
+function chart(id,cfg){if(!charts[id])charts[id]=new Chart($(id),cfg);return charts[id];}
+function pointer(e,els){e.native.target.style.cursor=els.length?"pointer":"default";}
+const kTick=v=>v>=1000?(v/1000)+"k":v;
+
+const promised={id:"promised",afterDraw(c){const x=c.scales.x.getPixelForValue(20),ar=c.chartArea,g=c.ctx;g.save();
+  g.fillStyle=C.late;g.globalAlpha=.07;g.fillRect(x,ar.top,ar.right-x,ar.bottom-ar.top);g.globalAlpha=1;
+  g.strokeStyle=C.tape;g.lineWidth=2;g.setLineDash([5,4]);g.beginPath();g.moveTo(x,ar.top);g.lineTo(x,ar.bottom);g.stroke();g.setLineDash([]);
+  g.fillStyle=C.ink;g.font="600 13px "+css("--font");g.textAlign="left";g.fillText("Promised date",x+8,ar.top+14);
+  g.fillStyle=C.muted;g.font="12px "+css("--font");g.textAlign="right";g.fillText("Early",x-8,ar.top+14);g.restore();}};
+const labels={id:"labels",afterDatasetsDraw(c,_,o){const g=c.ctx;g.save();g.font="600 12.5px "+css("--font");g.fillStyle=C.ink;
+  const ds=o.ds||0,meta=c.getDatasetMeta(ds);meta.data.forEach((el,i)=>{const v=c.data.datasets[ds].data[i];if(v==null)return;const t=o.f?o.f(v):v;
+  if(c.options.indexAxis==="y"){g.textAlign="left";g.textBaseline="middle";g.fillText(t,el.x+5,el.y);}else{g.textAlign="center";g.fillText(t,el.x,el.y-6);}});g.restore();}};
+
+/* pages */
+function renderOverview(){
+  const days=[];for(let d=-20;d<=20;d++)days.push(d);
+  const c=chart("cDay",{type:"line",data:{labels:days,datasets:[{data:[],borderWidth:3,pointRadius:3,pointHoverRadius:6,tension:.25,spanGaps:true,segment:{borderColor:x=>x.p1DataIndex>20?C.late:C.ontime}}]},
+    options:{interaction:{mode:"index",intersect:false},plugins:{tooltip:{callbacks:{title:i=>{const d=+i[0].label;return d===0?"Delivered on the promised date":d<0?(-d)+" day"+(d===-1?"":"s")+" early":d+" day"+(d===1?"":"s")+" late";},
+      label:i=>" Avg review "+i.parsed.y.toFixed(2)+" from "+fmt(charts.cDay.$n[i.dataIndex])+" reviews"}}},
+      scales:{x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:0,callback:(v,i)=>days[i]%5===0?(days[i]>0?"+"+days[i]:String(days[i])):""},title:{display:true,text:"Days vs promised date"}},
+        y:{min:1,max:5,ticks:{stepSize:1,callback:v=>v+"★"},title:{display:true,text:"Average review"}}}},plugins:[promised]});
+  const dv=[],nn=[],pc=[];for(let i=1;i<=41;i++){const x=A.day[i];dv.push(x[0]>=20?x[1]/x[0]:null);nn.push(x[0]);pc.push(i>21?C.late:C.ontime);}
+  Object.assign(c.data.datasets[0],{data:dv,pointBackgroundColor:pc,pointBorderColor:pc});c.$n=nn;c.update();
+  const onA=A.on?A.os/A.on:null,laA=A.ln?A.ls/A.ln:null;
+  let sub=onA!=null&&laA!=null?"On-time orders average "+onA.toFixed(2)+"★, late orders "+laA.toFixed(2)+"★.":"Not enough reviews to compare on-time and late orders here.";
+  let wn=0,ws=0,cnt=0;A.sta.forEach((s,i)=>{if((st.region==="All"||SR[i]===st.region)&&s.on>=100&&s.ln>=30){ws+=(s.os/s.on-s.ls/s.ln)*s.ln;wn+=s.ln;cnt++;}});
+  if(st.cs===null&&wn)sub+=" The gap holds inside individual states too: "+(ws/wn).toFixed(2)+" points on average across "+cnt+" states.";
+  $("heroSub").textContent=sub+" Points with fewer than 20 reviews are left out.";
+  const at=k=>A.day[k+21][0]>=20?(A.day[k+21][1]/A.day[k+21][0]).toFixed(2):null, p0=at(0),p1=at(1),p7=at(7);
+  $("heroTake").textContent=p0&&p1&&p7?"On the promised day: "+p0+"★. One day late: "+p1+"★. Seven days late: "+p7+"★. Most of the damage is done within a week.":"";
+  const m=chart("cMonth",{data:{labels:M.map(x=>MN[+x.slice(5)-1]+" "+x.slice(2,4)),datasets:[
+    {type:"line",data:[],yAxisID:"y1",borderColor:C.late,backgroundColor:C.late,borderWidth:2.5,pointRadius:2.5,tension:.25,order:0},
+    {type:"bar",data:[],yAxisID:"y",borderRadius:2,order:1}]},
+    options:{interaction:{mode:"index",intersect:false},plugins:{tooltip:{callbacks:{label:i=>i.dataset.type==="bar"?" Orders "+fmt(i.parsed.y):" Late rate "+i.parsed.y.toFixed(1)+"%"}}},
+      onClick:(e,els)=>{if(!els.length)return;const i=els[0].index;if(st.from===i&&st.to===i){st.from=0;st.to=M.length-1;}else{st.from=i;st.to=i;}update();},onHover:pointer,
+      scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkipPadding:8}},y:{beginAtZero:true,ticks:{callback:kTick}},y1:{position:"right",beginAtZero:true,grid:{display:false},ticks:{callback:v=>v+"%"}}}}});
+  m.data.datasets[1].data=A.mon.map(o=>o.n);m.data.datasets[0].data=A.mon.map(o=>o.n>=100?+(100*o.l/o.n).toFixed(2):null);
+  m.data.datasets[1].backgroundColor=M.map((x,i)=>i>=st.from&&i<=st.to?C.bar:C.faded);m.update();
+  let worst=-1,wv=-1;A.mon.forEach((o,i)=>{if(o.n>=100&&o.l/o.n>wv){wv=o.l/o.n;worst=i;}});
+  $("monthTake").textContent=worst>=0?"Worst month in this selection: "+mLabel(M[worst])+", "+(100*wv).toFixed(1)+"% late across "+fmt(A.mon[worst].n)+" orders.":"";
+  const b=chart("cBucket",{type:"bar",data:{labels:["On time","1–3 days","4–7 days","8+ days"],datasets:[{data:[],borderRadius:3,maxBarThickness:56}]},
+    options:{layout:{padding:{top:20}},plugins:{labels:{f:v=>v.toFixed(2)},tooltip:{callbacks:{label:i=>" Avg review "+i.parsed.y.toFixed(2),afterLabel:i=>" "+fmt(charts.cBucket.$o[i.dataIndex])+" orders"}}},
+      scales:{x:{grid:{display:false},title:{display:true,text:"Days late"}},y:{min:0,max:5,ticks:{stepSize:1,callback:v=>v+"★"}}}},plugins:[labels]});
+  b.data.datasets[0].data=A.bk.map(x=>x[1]?x[2]/x[1]:null);b.$o=A.bk.map(x=>x[0]);b.data.datasets[0].backgroundColor=[C.ontime,mix(C.tape,C.late,.25),mix(C.late,C.tape,.2),C.late];b.update();
+  const cols=[C.late,mix(C.late,C.tape,.55),C.tape,mix(C.tape,C.ontime,.55),C.ontime];
+  const dc=chart("cDist",{type:"bar",data:{labels:["On time","Late"],datasets:[1,2,3,4,5].map(s=>({label:s+"★",data:[],borderWidth:0,backgroundColor:cols[s-1]}))},
+    options:{indexAxis:"y",plugins:{tooltip:{callbacks:{label:i=>" "+i.dataset.label+" "+i.parsed.x.toFixed(1)+"%"}}},scales:{x:{stacked:true,max:100,ticks:{callback:v=>v+"%"}},y:{stacked:true,grid:{display:false}}}}});
+  const to=A.dist.on.reduce((x,y)=>x+y,0),tl=A.dist.late.reduce((x,y)=>x+y,0);
+  dc.data.datasets.forEach((d,i)=>{d.data=[to?100*A.dist.on[i+1]/to:0,tl?100*A.dist.late[i+1]/tl:0];d.backgroundColor=cols[i];});dc.update();
+  $("distLegend").innerHTML=cols.map((c,i)=>'<span><i style="background:'+c+'"></i>'+(i+1)+'★</span>').join("");
+  $("distTake").textContent=to&&tl?pct(A.dist.late[1],tl)+" of late orders get 1★, against "+pct(A.dist.on[1],to)+" of on-time orders. "+pct(A.dist.on[5],to)+" of on-time orders get 5★, against "+pct(A.dist.late[5],tl)+" of late ones.":"";
+}
+
+function renderAnatomy(){
+  const g=A.stg,names=["Approval","Seller handling","Carrier transit"],cols=[C.bar,C.tape,C.late];
+  const c=chart("cStage",{type:"bar",data:{labels:["On time","Late"],datasets:names.map((n,k)=>({label:n,data:[],borderWidth:0,barPercentage:.6,backgroundColor:cols[k]}))},
+    options:{indexAxis:"y",plugins:{tooltip:{callbacks:{label:i=>" "+i.dataset.label+" "+i.parsed.x.toFixed(1)+" days"}}},scales:{x:{stacked:true,title:{display:true,text:"Days"}},y:{stacked:true,grid:{display:false}}}}});
+  c.data.datasets.forEach((d,k)=>{d.data=[g[0][3]?g[0][k]/g[0][3]:0,g[1][3]?g[1][k]/g[1][3]:0];d.backgroundColor=cols[k];});c.update();
+  $("stageLegend").innerHTML=names.map((n,k)=>'<span><i style="background:'+cols[k]+'"></i>'+n+'</span>').join("");
+  if(g[0][3]&&g[1][3]){const tO=g[0][2]/g[0][3],tL=g[1][2]/g[1][3],hO=g[0][1]/g[0][3],hL=g[1][1]/g[1][3];
+    $("stageTake").textContent="Late orders spend "+tL.toFixed(1)+" days in carrier transit against "+tO.toFixed(1)+" on time ("+(tL/tO).toFixed(1)+"×). Seller handling goes from "+hO.toFixed(1)+" to "+hL.toFixed(1)+" days.";}
+  else $("stageTake").textContent="";
+  $("hLate").textContent=pct(A.lhL,A.lhN);$("hOk").textContent=pct(A.okL,A.okN);
+  $("hLateS").textContent="late rate when the seller missed the handoff ("+fmt(A.lhN)+" orders)";$("hOkS").textContent="late rate when the handoff was on time ("+fmt(A.okN)+" orders)";
+  $("handTake").textContent=A.l?pct(A.lhN,A.n)+" of orders had a missed handoff. Only "+pct(A.lateLh,A.l)+" of late orders did, so most lateness starts after the parcel leaves the seller.":"";
+  const p=chart("cPromise",{type:"line",data:{labels:M.map(x=>MN[+x.slice(5)-1]+" "+x.slice(2,4)),datasets:[
+    {data:[],borderColor:C.tape,backgroundColor:C.tape,borderWidth:2.5,pointRadius:2,tension:.25,fill:false},
+    {data:[],borderColor:C.ontime,backgroundColor:mix(C.ontime,C.panel,.82),borderWidth:2.5,pointRadius:2,tension:.25,fill:"-1"}]},
+    options:{interaction:{mode:"index",intersect:false},plugins:{tooltip:{callbacks:{label:i=>(i.datasetIndex?" Actual ":" Promised ")+i.parsed.y.toFixed(1)+" days",
+      afterBody:i=>{const o=A.mon[i[0].dataIndex];return o.n?"Late rate "+pct(o.l,o.n)+" of "+fmt(o.n):"";}}}},
+      scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkipPadding:8}},y:{beginAtZero:true,title:{display:true,text:"Days"}}}}});
+  p.data.datasets[0].data=A.mon.map(o=>o.n>=100?o.p/o.n:null);p.data.datasets[1].data=A.mon.map(o=>o.n>=100?o.a/o.n:null);p.update();
+  let mn=null;A.mon.forEach((o,i)=>{if(o.n>=100){const b=(o.p-o.a)/o.n;if(!mn||b<mn.b)mn={i,b,l:o.l/o.n};}});
+  $("promTake").textContent=mn?"Thinnest buffer: "+mLabel(M[mn.i])+" with "+mn.b.toFixed(1)+" days, when "+(100*mn.l).toFixed(1)+"% of orders were late.":"";
+  const lbl=[];for(let d=-40;d<=40;d++)lbl.push(d);
+  const h=chart("cHist",{type:"bar",data:{labels:lbl,datasets:[{data:[],barPercentage:1,categoryPercentage:1}]},
+    options:{plugins:{tooltip:{callbacks:{title:i=>{const d=+i[0].label;return d<=-40?"40+ days early":d>=40?"40+ days late":d===0?"On the promised date":d<0?(-d)+" days early":d+" days late";},label:i=>" "+fmt(i.parsed.y)+" orders"}}},
+      scales:{x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:0,callback:(v,i)=>lbl[i]%10===0?(lbl[i]>0?"+"+lbl[i]:lbl[i]):""}},y:{beginAtZero:true,ticks:{callback:kTick}}}}});
+  h.data.datasets[0].data=A.hist;h.data.datasets[0].backgroundColor=lbl.map(d=>d>0?C.late:C.ontime);h.update();
+  let med=0,cum=0;for(let k=0;k<81;k++){cum+=A.hist[k];if(cum>=A.n/2){med=k-40;break;}}
+  $("histTake").textContent=A.n?"The typical order arrives "+(-med)+" days before its promised date. The promise is padded for most orders yet still missed for the tail.":"";
+}
+
+const TILES={RR:[1,0],AP:[2,0],AM:[1,1],PA:[2,1],MA:[3,1],CE:[4,1],RN:[5,1],AC:[0,2],RO:[1,2],TO:[2,2],PI:[3,2],PE:[4,2],PB:[5,2],MT:[1,3],GO:[2,3],BA:[3,3],SE:[4,3],AL:[5,3],MS:[1,4],DF:[2,4],MG:[3,4],ES:[4,4],PR:[1,5],SP:[2,5],RJ:[3,5],SC:[1,6],RS:[1,7]};
+function renderGeo(){
+  const met=st.geo,good=met==="rev"||met==="buf";
+  const val=o=>!o.n?null:met==="late"?100*o.l/o.n:met==="rev"?(o.rn?o.rs/o.rn:null):met==="days"?o.a/o.n:(o.p-o.a)/o.n;
+  const vs=S.map((s,i)=>A.sta[i].n>=100?val(A.sta[i]):null).filter(v=>v!=null),lo=Math.min(...vs),hi=Math.max(...vs);
+  const hue=good?C.ontime:C.late,unit=met==="late"?"%":met==="rev"?"★":"d",dp=met==="rev"?2:1;
+  $("map").innerHTML=S.map((s,i)=>{const o=A.sta[i],v=val(o),t=v==null||hi===lo?0:(v-lo)/(hi-lo),inR=st.region==="All"||s[2]===st.region;
+    const bg=v==null?C.soft:mix(C.soft,hue,.12+.88*t),fg=t>.55?"#FFFFFF":C.ink,[x,y]=TILES[s[0]];
+    return '<button type="button" class="tile'+(o.n<100?" small":"")+(st.cs===i?" sel":"")+'" data-i="'+i+'" style="grid-column:'+(x+1)+';grid-row:'+(y+1)+';background:'+bg+';color:'+fg+(inR?"":";opacity:.3")+'" title="'+s[1]+": "+(v==null?"no orders":v.toFixed(dp)+unit+" across "+fmt(o.n)+" orders")+'"><b>'+s[0]+'</b><span>'+(v==null?"–":v.toFixed(met==="rev"?2:met==="late"?1:0)+(met==="late"?"%":""))+'</span></button>';}).join("");
+  $("map").querySelectorAll(".tile").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;st.cs=st.cs===i?null:i;if(st.cs!==null&&st.region!=="All"&&SR[i]!==st.region)st.region="All";update();});
+  $("scale").innerHTML=vs.length?"<span>"+lo.toFixed(dp)+unit+"</span><i style='background:linear-gradient(90deg,"+mix(C.soft,hue,.12)+","+hue+")'></i><span>"+hi.toFixed(dp)+unit+"</span>":"";
+  const ranked=S.map((s,i)=>({s,o:A.sta[i],v:val(A.sta[i])})).filter(r=>r.o.n>=100&&r.v!=null).sort((a,b)=>good?a.v-b.v:b.v-a.v);
+  const nm={late:"late rate",rev:"average review",days:"average delivery time",buf:"buffer"}[met];
+  $("mapTake").textContent=ranked.length?"Worst "+nm+" among states with 100+ orders: "+ranked[0].s[1]+" ("+ranked[0].v.toFixed(dp)+unit+")"+(ranked[1]?", then "+ranked[1].s[1]+" ("+ranked[1].v.toFixed(dp)+unit+").":"."):"";
+  const dc=chart("cDistance",{data:{labels:DBL,datasets:[{type:"line",data:[],yAxisID:"y1",borderColor:C.late,backgroundColor:C.late,borderWidth:2.5,pointRadius:4,order:0},{type:"bar",data:[],yAxisID:"y",backgroundColor:C.bar,borderRadius:2,order:1,maxBarThickness:60}]},
+    options:{interaction:{mode:"index",intersect:false},plugins:{tooltip:{callbacks:{label:i=>i.dataset.type==="bar"?" "+i.parsed.y.toFixed(1)+" days to deliver":" Late rate "+i.parsed.y.toFixed(1)+"%",afterBody:i=>" "+fmt(A.db[i[0].dataIndex].n)+" orders"}}},
+      scales:{x:{grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:"Days"}},y1:{position:"right",beginAtZero:true,grid:{display:false},ticks:{callback:v=>v+"%"}}}}});
+  dc.data.datasets[0].data=A.db.map(o=>o.n>=30?100*o.l/o.n:null);dc.data.datasets[1].data=A.db.map(o=>o.n>=30?o.a/o.n:null);dc.data.datasets[0].backgroundColor=C.late;dc.data.datasets[0].borderColor=C.late;dc.data.datasets[1].backgroundColor=C.bar;dc.update();
+  $("sameV").textContent=pct(A.same.l,A.same.n);$("interV").textContent=pct(A.inter.l,A.inter.n);
+  $("sameS").textContent="late rate, same-state orders ("+fmt(A.same.n)+")";$("interS").textContent="late rate, interstate orders ("+fmt(A.inter.n)+")";
+  const f=A.db[0],l=A.db[5];$("distTakeGeo").textContent=f.n>=30&&l.n>=30?"Under 100 km: "+pct(f.l,f.n)+" late in "+(f.a/f.n).toFixed(1)+" days. Over 1,500 km: "+pct(l.l,l.n)+" late in "+(l.a/l.n).toFixed(1)+" days.":"";
+  const rows=["SP","MG","PR","RJ","SC","RS","Other"];let mxv=0;A.mx.forEach(r=>r.forEach(x=>{if(x.n>=50)mxv=Math.max(mxv,x.l/x.n);}));
+  let best=null;A.mx.forEach((r,ri2)=>r.forEach((x,ci)=>{if(x.n>=50&&(!best||x.l>best.l))best={r:rows[ri2],c:REG[ci],l:x.l,n:x.n};}));
+  $("matrix").innerHTML="<thead><tr><th class='lft'>Seller state</th>"+REG.map(r=>"<th>"+r+"</th>").join("")+"</tr></thead><tbody>"+A.mx.map((r,k)=>"<tr><th class='lft'>"+rows[k]+"</th>"+r.map(x=>{if(x.n<50)return "<td style='color:var(--muted)'>–</td>";const t=mxv?(x.l/x.n)/mxv:0;
+    return "<td style='background:"+mix(C.soft,C.late,.1+.9*t)+";color:"+(t>.55?"#FFFFFF":C.ink)+"' title='"+fmt(x.l)+" late of "+fmt(x.n)+"'>"+(100*x.l/x.n).toFixed(1)+"%<small>"+fmt(x.n)+" orders</small></td>";}).join("")+"</tr>").join("")+"</tbody>";
+  $("mxTake").textContent=best?"Most late orders on one lane: "+best.r+" sellers to "+best.c+" customers, "+fmt(best.l)+" late out of "+fmt(best.n)+".":"";
+}
+
+function sellerAgg(){const n=SELL.length,o={n:new Uint32Array(n),l:new Uint32Array(n),h:new Uint32Array(n),rn:new Uint32Array(n),rs:new Uint32Array(n)};
+  for(let k=0;k<bo.length;k++){const i=bo[k];if(!A.mask[i])continue;const s=bs[k];o.n[s]++;if(dd[i]>0)o.l[s]++;if(lh[i])o.h[s]++;if(sc[i]){o.rn[s]++;o.rs[s]+=sc[i];}}return o;}
+function renderProd(){
+  const top=A.cat.map((o,i)=>({i,...o})).filter(o=>o.n>0).sort((a,b)=>b.n-a.n).slice(0,14),keepSel=st.cat!==null&&!top.find(t=>t.i===st.cat);
+  if(keepSel)top.push({i:st.cat,...A.cat[st.cat]});
+  top.forEach(o=>o.v=st.catM==="late"?100*o.l/o.n:(o.rn?o.rs/o.rn:null));top.sort((a,b)=>st.catM==="late"?b.v-a.v:a.v-b.v);
+  const c=chart("cCat",{type:"bar",data:{labels:[],datasets:[{data:[],borderRadius:2,barPercentage:.8}]},options:{indexAxis:"y",layout:{padding:{right:40}},
+    plugins:{labels:{f:v=>st.catM==="late"?v.toFixed(1)+"%":v.toFixed(2)},tooltip:{callbacks:{label:i=>{const o=charts.cCat.$r[i.dataIndex];return [" Late rate "+pct(o.l,o.n)," Avg review "+avg(o.rs,o.rn)," "+fmt(o.n)+" orders"];}}}},
+    onClick:(e,els)=>{if(!els.length)return;const k=charts.cCat.$r[els[0].index].i;st.cat=st.cat===k?null:k;update();},onHover:pointer,
+    scales:{x:{beginAtZero:true},y:{grid:{display:false},ticks:{autoSkip:false}}}},plugins:[labels]});
+  c.$r=top;c.data.labels=top.map(o=>{const n=CATS[o.i];return n.length>24?n.slice(0,23)+"…":n;});c.data.datasets[0].data=top.map(o=>o.v);
+  c.data.datasets[0].backgroundColor=top.map(o=>st.cat!==null&&o.i!==st.cat?C.faded:st.catM==="late"?C.late:C.ontime);
+  c.options.scales.x.min=st.catM==="rev"?3:0;c.options.scales.x.max=st.catM==="rev"?5:undefined;c.options.scales.x.ticks.callback=v=>st.catM==="late"?v+"%":v+"★";c.update();
+  const big=A.cat.map((o,i)=>({i,...o})).filter(o=>o.n>=500);
+  if(big.length>1){big.sort((a,b)=>a.l/a.n-b.l/b.n);const lo=big[0],hi=big[big.length-1];
+    $("catTake").textContent="Among categories with 500+ orders, late rate runs from "+pct(lo.l,lo.n)+" ("+CATS[lo.i]+") to "+pct(hi.l,hi.n)+" ("+CATS[hi.i]+"), a narrower spread than distance produces.";}else $("catTake").textContent="";
+  const it=chart("cItems",{data:{labels:["1 item","2 items","3 items","4+ items"],datasets:[{type:"line",data:[],yAxisID:"y1",borderColor:C.late,backgroundColor:C.late,borderWidth:2.5,pointRadius:4,order:0},{type:"bar",data:[],yAxisID:"y",backgroundColor:C.bar,borderRadius:2,order:1,maxBarThickness:50}]},
+    options:{interaction:{mode:"index",intersect:false},plugins:{tooltip:{callbacks:{label:i=>i.dataset.type==="bar"?" Avg review "+i.parsed.y.toFixed(2):" Late rate "+i.parsed.y.toFixed(1)+"%",afterBody:i=>" "+fmt(A.it[i[0].dataIndex].n)+" orders"}}},
+      scales:{x:{grid:{display:false}},y:{min:1,max:5,ticks:{callback:v=>v+"★"}},y1:{position:"right",beginAtZero:true,grid:{display:false},ticks:{callback:v=>v+"%"}}}}});
+  it.data.datasets[0].data=A.it.map(o=>o.n>=30?100*o.l/o.n:null);it.data.datasets[1].data=A.it.map(o=>o.n>=30&&o.rn?o.rs/o.rn:null);it.update();
+  const pr=chart("cPrice",{type:"bar",data:{labels:PBL,datasets:[{data:[],borderRadius:2,maxBarThickness:50}]},options:{layout:{padding:{top:18}},plugins:{labels:{f:v=>v.toFixed(1)+"%"},tooltip:{callbacks:{label:i=>" Late rate "+i.parsed.y.toFixed(1)+"%",afterLabel:i=>" "+fmt(A.pb[i.dataIndex].n)+" orders"}}},
+    scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>v+"%"}}}},plugins:[labels]});
+  pr.data.datasets[0].data=A.pb.map(o=>o.n>=30?100*o.l/o.n:null);pr.data.datasets[0].backgroundColor=PBL.map((x,i)=>mix(C.bar,C.late,i/4));pr.update();
+  const sa=sellerAgg(),list=[];for(let s=0;s<SELL.length;s++)if(sa.n[s]>=st.minOrders)list.push({s,n:sa.n[s],l:sa.l[s],h:sa.h[s],r:sa.rn[s]?sa.rs[s]/sa.rn[s]:null});
+  const revCol=r=>{if(r==null)return C.bar;const x=Math.max(0,Math.min(1,(r-3)/1.5));return x<.5?mix(C.late,C.tape,x*2):mix(C.tape,C.ontime,(x-.5)*2);};
+  const sp=chart("cScatter",{type:"bubble",data:{datasets:[{data:[],borderWidth:0}]},options:{plugins:{tooltip:{callbacks:{label:i=>{const r=charts.cScatter.$l[i.dataIndex];
+    return [" Seller "+SELL[r.s][0].slice(0,10)+"… ("+SELL[r.s][1]+")"," "+fmt(r.n)+" orders, "+fmt(r.l)+" late ("+pct(r.l,r.n)+")"," Avg review "+(r.r==null?"–":r.r.toFixed(2))];}}}},
+    scales:{x:{type:"logarithmic",title:{display:true,text:"Delivered orders (log scale)"},ticks:{callback:v=>[10,30,100,300,1000,3000].includes(v)?kTick(v):""}},y:{beginAtZero:true,title:{display:true,text:"Late rate"},ticks:{callback:v=>v+"%"}}}}});
+  sp.$l=list;sp.data.datasets[0].data=list.map(r=>({x:r.n,y:100*r.l/r.n,r:Math.max(2.5,Math.sqrt(r.l)*1.6)}));sp.data.datasets[0].backgroundColor=list.map(r=>revCol(r.r)+"CC");sp.update();
+  $("scatSub").textContent=fmt(list.length)+" sellers with at least "+st.minOrders+" orders in this selection. Bubble size is late orders, colour is average review (red low, green high).";
+  $("scatLegend").innerHTML=[3,3.5,4,4.5].map(r=>'<span><i style="background:'+revCol(r)+'"></i>'+r.toFixed(1)+'★</span>').join("");
+  const sorter={vol:(a,b)=>b.l-a.l||b.l/b.n-a.l/a.n,rate:(a,b)=>b.l/b.n-a.l/a.n||b.l-a.l,hand:(a,b)=>b.h-a.h||b.l-a.l}[st.sort];
+  const t=list.slice().sort(sorter).slice(0,15),maxR=Math.max(...t.map(r=>r.l/r.n),.01);
+  $("sellerSub").textContent="Top 15 of "+fmt(list.length)+" sellers with at least "+st.minOrders+" orders in this selection. Multi-seller orders count for each seller.";
+  $("sellerBody").innerHTML=t.length?t.map(r=>'<tr><td class="lft id" title="'+SELL[r.s][0]+'">'+SELL[r.s][0].slice(0,10)+'…</td><td class="lft">'+SELL[r.s][1]+'</td><td>'+fmt(r.n)+'</td><td>'+fmt(r.l)+'</td><td><div class="cell">'+pct(r.l,r.n)+'<span class="track"><span style="width:'+(100*(r.l/r.n)/maxR)+'%"></span></span></div></td><td>'+pct(r.h,r.n)+'</td><td>'+(r.r==null?"–":r.r.toFixed(2)+"★")+'</td></tr>').join("")
+    :'<tr><td colspan="7" class="empty lft">No sellers meet the minimum here. Lower the minimum orders or widen the filters.</td></tr>';
+}
+
+function renderImpact(){
+  $("cmLate").textContent=pct(A.cm.latec,A.cm.late);$("cmOn").textContent=pct(A.cm.onc,A.cm.on);
+  $("cmTake").textContent=A.cm.late&&A.cm.on?"Late customers are "+((A.cm.latec/A.cm.late)/(A.cm.onc/A.cm.on)).toFixed(1)+"× as likely to write something, so lateness turns into visible public complaints.":"";
+  $("rpOn").textContent=pct(A.rp.onb,A.rp.on,2);$("rpLate").textContent=pct(A.rp.lateb,A.rp.late,2);
+  $("rpOnS").textContent="came back after an on-time first order ("+fmt(A.rp.on)+" customers)";$("rpLateS").textContent="came back after a late first order ("+fmt(A.rp.late)+" customers)";
+  $("rpTake").textContent="Repeat buying is rare on Olist, so this gap is small in absolute terms and needs a bigger sample before treating it as proof.";
+  const cur=A.n?100*A.l/A.n:0,sl=$("target");sl.max=Math.max(0.1,Math.ceil(cur*10)/10);if(st.target>cur)st.target=Math.round(cur*5)/10;sl.value=st.target;sim();
+}
+function sim(){
+  const t=st.target/100,cut=Math.max(0,A.l-t*A.n),rshare=A.l?A.ln/A.l:0,moved=cut*rshare,onA=A.on?A.os/A.on:0,laA=A.ln?A.ls/A.ln:0;
+  const old=A.rn?A.rs/A.rn:0,nw=A.rn?(A.rs+moved*(onA-laA))/A.rn:0,tl=A.dist.late.reduce((x,y)=>x+y,0),to=A.dist.on.reduce((x,y)=>x+y,0);
+  const one=tl&&to?moved*(A.dist.late[1]/tl-A.dist.on[1]/to):0;
+  $("targetOut").textContent=st.target.toFixed(1)+"%";$("sFewer").textContent=fmt(cut);$("sLift").textContent="+"+(nw-old).toFixed(3)+"★";$("sNew").textContent=nw?nw.toFixed(2)+"★":"–";$("sOne").textContent=fmt(Math.max(0,one));
+}
+
+/* main update */
+const RENDER={overview:renderOverview,anatomy:renderAnatomy,geo:renderGeo,prod:renderProd,impact:renderImpact,find:()=>{}};
+function update(){
+  sync();A=compute();
+  const where=st.cs!==null?S[st.cs][1]:st.region==="All"?"all of Brazil":"the "+st.region+" region";
+  const when=st.from===0&&st.to===M.length-1?"all months":st.from===st.to?mLabel(M[st.from]):mLabel(M[st.from])+" to "+mLabel(M[st.to]);
+  $("status").innerHTML="Showing <b>"+when+"</b>, customers in <b>"+where+"</b>"+(st.ss!==null?", sellers in <b>"+S[st.ss][1]+"</b>":"")+(st.cat!==null?", category <b>"+CATS[st.cat]+"</b>":"")+".";
+  const onA=A.on?A.os/A.on:null,laA=A.ln?A.ls/A.ln:null;
+  $("kOrders").textContent=fmt(A.n);$("kOrdersS").textContent=fmt(A.rn)+" with a review";
+  $("kLate").textContent=pct(A.l,A.n,2);$("kLateS").textContent=fmt(A.l)+" after the promised date";
+  $("kRev").textContent=A.rn?(A.rs/A.rn).toFixed(2)+"★":"–";$("kRevS").textContent="out of 5";
+  $("kGap").textContent=onA!=null&&laA!=null?"−"+(onA-laA).toFixed(2):"–";$("kGapS").textContent=onA!=null&&laA!=null?onA.toFixed(2)+"★ on time, "+laA.toFixed(2)+"★ late":"needs both groups";
+  $("kDays").textContent=A.n?(A.act/A.n).toFixed(1)+" days":"–";$("kDaysS").textContent=A.n?"promised "+(A.prom/A.n).toFixed(1)+" days":"";
+  $("kDelay").textContent=A.l?(A.ld/A.l).toFixed(1)+" days":"–";
+  RENDER[st.page]();
+}
+function show(p){st.page=p;document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected",b.dataset.p===p));
+  document.querySelectorAll(".page").forEach(s=>s.hidden=s.id!=="p-"+p);RENDER[p]();}
+
+fFrom.onchange=()=>{st.from=+fFrom.value;if(st.to<st.from)st.to=st.from;update();};
+fTo.onchange=()=>{st.to=+fTo.value;if(st.from>st.to)st.from=st.to;update();};
+fRegion.onchange=()=>{st.region=fRegion.value;if(st.cs!==null&&st.region!=="All"&&SR[st.cs]!==st.region)st.cs=null;update();};
+fState.onchange=()=>{st.cs=fState.value===""?null:+fState.value;update();};
+fSeller.onchange=()=>{st.ss=fSeller.value===""?null:+fSeller.value;update();};
+fCat.onchange=()=>{st.cat=fCat.value===""?null:+fCat.value;update();};
+$("reset").onclick=()=>{Object.assign(st,{from:0,to:M.length-1,region:"All",cs:null,ss:null,cat:null});update();};
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>show(b.dataset.p));
+function segs(attr,key,after){document.querySelectorAll("[data-"+attr+"]").forEach(b=>b.onclick=()=>{st[key]=b.dataset[attr];document.querySelectorAll("[data-"+attr+"]").forEach(x=>x.setAttribute("aria-pressed",x===b));after();});}
+segs("g","geo",renderGeo);segs("k","catM",renderProd);segs("s","sort",renderProd);
+$("minOrders").oninput=e=>{st.minOrders=+e.target.value;$("minOut").textContent=st.minOrders;renderProd();};
+$("target").oninput=e=>{st.target=+e.target.value;sim();};
+function retheme(){readColors();Object.keys(charts).forEach(k=>{charts[k].destroy();delete charts[k];});RENDER[st.page]();}
+readColors();update();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",retheme);
+new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+})();
+</script>
+</body>
+</html>

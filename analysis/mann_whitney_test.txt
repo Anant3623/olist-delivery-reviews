@@ -1,0 +1,4 @@
+method: scipy.stats.mannwhitneyu (asymptotic, two-sided)
+late reviewed orders: 6381; on-time reviewed orders: 89443
+U: 103,305,546; z: 96.37; p: <1e-300
+rank-biserial effect (late vs on-time): -0.638

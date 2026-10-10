@@ -1,0 +1,10 @@
+          check_name          | failed 
+------------------------------+--------
+ delay_iqr_outlier_orders     |   4297
+ delivered_before_purchase    |      0
+ delivered_but_no_date        |      8
+ duplicate_order_id           |      0
+ orders_with_multiple_reviews |    547
+ orphan_order_item_rows       |      0
+(6 rows)
+

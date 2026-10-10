@@ -1,0 +1,26 @@
+{
+  "verified_on": "2026-10-07",
+  "scope": "SQL/Python pipeline and data analysis",
+  "checks": {
+    "full_export_and_source_invariants": "passed",
+    "aggregate_control_checks": "passed",
+    "all_five_analysis_csv_control_totals": "passed",
+    "python_syntax": "passed",
+    "existing_database_quality_queries": "passed and saved",
+    "existing_database_business_queries": "passed and saved",
+    "existing_database_within_group_queries": "passed and saved",
+    "scipy_mann_whitney": "passed and saved",
+    "scipy_geographic_check": "passed and saved"
+  },
+  "control_totals": {
+    "orders": 96470,
+    "late_orders": 6534,
+    "reviewed_orders": 95824,
+    "review_score_sum": 398233,
+    "late_delay_days_sum": 69392,
+    "customer_states": 27,
+    "qualified_sellers": 627
+  },
+  "validation_note": "The original SQL pipeline was previously run. For this handoff, SELECT-only SQL analysis reports and statistical checks were rerun, and copied data/analysis were validated. A fresh database rebuild of this packaged Makefile was not run.",
+  "interpretation": "Historical descriptive associations; no causal intervention effect is established."
+}

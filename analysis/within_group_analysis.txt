@@ -1,0 +1,10 @@
+     comparison      | qualifying_groups | late_reviewed_orders | groups_with_lower_late_score | late_weighted_review_gap 
+---------------------+-------------------+----------------------+------------------------------+--------------------------
+ same customer state |                21 |                 6333 |                           21 |                    2.005
+(1 row)
+
+        comparison         | qualifying_groups | late_reviewed_order_attributions | groups_with_lower_late_score | late_weighted_review_gap 
+---------------------------+-------------------+----------------------------------+------------------------------+--------------------------
+ same participating seller |               287 |                             4675 |                          286 |                    1.971
+(1 row)
+
